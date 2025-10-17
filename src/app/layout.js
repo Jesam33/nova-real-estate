@@ -13,14 +13,14 @@ export const metadata = {
   description: "Discover premium properties in Lagos with Novacore.",
   keywords: ["properties", "Lagos properties", "real estate", "Novacore", "buy property online"],
   openGraph: {
-    title: "Novacore Cakes",
+    title: "Novacore Properties - Premium Property around the world",
     description: "Where artistry meets flavor.",
     images: [
       {
-        url: "https://res.cloudinary.com/dijs29rd9/image/upload/v1752212810/b3_nqazuo.png",
+        url: "https://res.cloudinary.com/dijs29rd9/image/upload/v1760744172/nova_ozi853.jpg",
         width: 1200,
         height: 630,
-        alt: "Novacore Cake Showcase",
+        alt: "Novacore Properties Showcase",
       },
     ],
   },
@@ -38,9 +38,9 @@ export default function RootLayout({ children }) {
           </main>
           <footer className="bg-gray-800 text-white ">
             <div className="container mx-auto px-4 py-6 text-center">
-              <p>&copy; 2025 Sweet Delights. All rights reserved.</p>
+              <p>&copy; 2025 Novacore Properties. All rights reserved.</p>
               <p className="mt-2 text-gray-400">
-                Freshly baked with love              </p>
+                Discover premium properties with us </p>
             </div>
           </footer>
         </CartProvider>

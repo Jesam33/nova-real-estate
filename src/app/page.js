@@ -411,7 +411,7 @@ const handleSubmit = async (e) => {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight tracking-tight">
-            We Buy Houses in Cleveland
+            We Buy Houses in CASH
             <span className="block mt-2 text-3xl md:text-5xl ">
               Fast, Fair, and Hassle-Free
             </span>
