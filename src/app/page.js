@@ -229,7 +229,7 @@ const handleSubmit = async (e) => {
       }
     } catch (error) {
       console.error('Error:', error);
-      toast.error('❌ There was an error submitting your request. Please call us directly at (216) 681-4859', {
+      toast.error('❌ There was an error submitting your request. Please call us directly at  (216) 667-7884', {
         position: "top-right",
         autoClose: 5000,
       });
@@ -323,7 +323,7 @@ const handleSubmit = async (e) => {
             className="hidden md:flex items-center gap-2 text-slate-800 font-semibold hover:text-slate-600 transition-colors"
           >
             <Phone className="w-4 h-4" />
-            (216) 681-4859
+           (216) 667-7884
           </a>
 
           {/* Mobile Menu Button */}
@@ -380,7 +380,7 @@ const handleSubmit = async (e) => {
                 Contact
               </a>
               <a href="tel:2166814859" className="text-slate-800 font-semibold">
-                (216) 681-4859
+               (216) 667-7884
               </a>
             </div>
           </div>
@@ -446,7 +446,7 @@ const handleSubmit = async (e) => {
               className="flex items-center gap-3 bg-transparent border-2 border-white text-white font-bold text-lg px-10 py-4 hover:bg-white hover:text-slate-800 transition-all duration-300"
             >
               <Phone className="w-5 h-5" />
-              (216) 681-4859
+              (216) 667-7884
             </a>
           </div>
 
@@ -687,7 +687,7 @@ const handleSubmit = async (e) => {
     <br />
     <span className="flex items-center justify-center gap-2 mt-4">
       <Phone className="w-4 h-4 flex-shrink-0" /> 
-      <span>(216) 681-4859</span>
+      <span>(216) 667-7884</span>
     </span>
        <span className="flex items-center justify-center gap-2 mt-2">
       <MapPinIcon className="w-4 h-4 flex-shrink-0" /> 
@@ -1072,7 +1072,7 @@ const handleSubmit = async (e) => {
                         href="tel:2166814859"
                         className="text-slate-600 hover:text-slate-800 transition-colors"
                       >
-                        (216) 681-4859
+                       (216) 667-7884
                       </a>
                     </div>
                   </div>
@@ -1230,7 +1230,7 @@ const handleSubmit = async (e) => {
                   className="flex items-center gap-2 hover:text-white transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  (216) 681-4859
+                  (216) 667-7884
                 </a>
                 <a
                   href="mailto:novacorepropertysolutions@hotmail.com"

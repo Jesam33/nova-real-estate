@@ -68,7 +68,7 @@ const Header = () => {
               className="hidden md:flex items-center gap-2 text-slate-800 font-semibold hover:text-purple-600 transition-colors bg-purple-50 px-4 py-2 rounded-lg hover:bg-purple-100"
             >
               <Phone className="w-4 h-4" />
-              (216) 681-4859
+              (216) 667-7884
             </a>
 
             {/* Mobile Menu Button */}
@@ -110,7 +110,7 @@ const Header = () => {
                 onClick={closeMobileMenu}
               >
                 <Phone className="w-4 h-4" />
-                (216) 681-4859
+               (216) 667-7884
               </a>
             </div>
           </div>

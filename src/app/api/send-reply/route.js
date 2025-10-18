@@ -63,12 +63,12 @@ export async function POST(request) {
             <p>Thank you for your interest in NovaCore.</p>
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
               <p><strong>Best regards,</strong><br>NovaCore Team</p>
-              <p>Phone: (216) 681-4859</p>
+              <p>Phone: (216) 667-7884</p>
             </div>
           </div>
         </div>
       `,
-      text: `Hello ${customerName},\n\n${message}\n\nBest regards,\nNovaCore Team\nPhone: (216) 681-4859`,
+      text: `Hello ${customerName},\n\n${message}\n\nBest regards,\nNovaCore Team\nPhone: (216) 667-7884`,
     };
 
     console.log('Sending email...');
