@@ -145,7 +145,7 @@ export default function NovacoreLanding() {
     }
 
     // Check file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 500 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       toast.error(`❌ ${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is 5MB.`);
       hasErrors = true;
