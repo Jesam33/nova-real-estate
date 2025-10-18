@@ -181,7 +181,9 @@ const handleImageUpload = (e) => {
   if (fileInputRef.current) {
     fileInputRef.current.value = '';
   }
-};  const removeImage = (index) => {
+};
+
+const removeImage = (index) => {
     setFormData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
