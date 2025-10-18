@@ -21,8 +21,8 @@ import {
   MapPinIcon,
 } from "lucide-react";
 import bgHero from "./assets/images/bg-hero.webp";
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import jeff from "./assets/images/jeff.jpg";
 import Image from "next/image";
 
@@ -116,19 +116,19 @@ export default function NovacoreLanding() {
     images: [], // Image uploads
   });
 
-    // ADD THESE LINES:
+  // ADD THESE LINES:
   const fileInputRef = useRef(null);
 
- const handleImageUpload = (e) => {
+const handleImageUpload = (e) => {
   const files = Array.from(e.target.files);
   
   if (files.length === 0) return;
 
-  // Check total images won't exceed limit
+  // Check total images won't exceed limit - CHANGED TO 10
   const currentImagesCount = formData.images.length;
-  if (currentImagesCount + files.length > 5) {
-    const availableSlots = 5 - currentImagesCount;
-    toast.error(`❌ You can only upload ${availableSlots} more image(s). Maximum 5 images allowed.`);
+  if (currentImagesCount + files.length > 10) { // ← Changed from 5 to 10
+    const availableSlots = 10 - currentImagesCount; // ← Changed from 5 to 10
+    toast.error(`❌ You can only upload ${availableSlots} more image(s). Maximum 10 images allowed.`);
     files.splice(availableSlots); // Trim to available slots
   }
 
@@ -144,8 +144,8 @@ export default function NovacoreLanding() {
       return;
     }
 
-    // Check file size (5MB limit)
-    const maxSize = 500 * 1024 * 1024; // 5MB
+    // Check file size - KEEP 5MB LIMIT
+    const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       toast.error(`❌ ${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is 5MB.`);
       hasErrors = true;
@@ -181,15 +181,12 @@ export default function NovacoreLanding() {
   if (fileInputRef.current) {
     fileInputRef.current.value = '';
   }
-};
-
-  const removeImage = (index) => {
-    setFormData(prev => ({
+};  const removeImage = (index) => {
+    setFormData((prev) => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: prev.images.filter((_, i) => i !== index),
     }));
   };
-
 
   const handleInputChange = (e) => {
     setFormData({
@@ -198,95 +195,100 @@ export default function NovacoreLanding() {
     });
   };
   // In your NovacoreLanding component
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
       const submitData = new FormData();
-      
+
       // Append all form fields
-      submitData.append('name', formData.name);
-      submitData.append('address', formData.address);
-      submitData.append('phone', formData.phone);
-      submitData.append('email', formData.email);
-      submitData.append('condition', formData.condition);
-      submitData.append('reason', formData.reason);
-      submitData.append('desiredAmount', formData.desiredAmount);
-      
+      submitData.append("name", formData.name);
+      submitData.append("address", formData.address);
+      submitData.append("phone", formData.phone);
+      submitData.append("email", formData.email);
+      submitData.append("condition", formData.condition);
+      submitData.append("reason", formData.reason);
+      submitData.append("desiredAmount", formData.desiredAmount);
+
       // Append images
       formData.images.forEach((image, index) => {
-        submitData.append('images', image);
+        submitData.append("images", image);
       });
 
-      const response = await fetch('/api/submissions', {
-        method: 'POST',
+      const response = await fetch("/api/submissions", {
+        method: "POST",
         body: submitData,
       });
 
       const result = await response.json();
 
-  if (result.success) {
-  // THIS PART MUST EXIST AND BE CALLED:
-  console.log('📧 Sending admin notification...');
-  try {
-    const notificationResponse = await fetch('/api/send-notification', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: formData.name,
-        address: formData.address,
-        phone: formData.phone,
-        email: formData.email,
-        desiredAmount: formData.desiredAmount,
-        condition: formData.condition
-      }),
-    });
-    
-    const notificationResult = await notificationResponse.json();
-    console.log('📧 Notification result:', notificationResult);
-  } catch (error) {
-    console.error('❌ Notification failed:', error);
-  }
+      if (result.success) {
+        // THIS PART MUST EXIST AND BE CALLED:
+        console.log("📧 Sending admin notification...");
+        try {
+          const notificationResponse = await fetch("/api/send-notification", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: formData.name,
+              address: formData.address,
+              phone: formData.phone,
+              email: formData.email,
+              desiredAmount: formData.desiredAmount,
+              condition: formData.condition,
+            }),
+          });
 
+          const notificationResult = await notificationResponse.json();
+          console.log("📧 Notification result:", notificationResult);
+        } catch (error) {
+          console.error("❌ Notification failed:", error);
+        }
 
-  // Show success toast
-  toast.success('🎉 Your cash offer request has been submitted! We will contact you within 24 hours.', {
-    position: "top-right",
-    autoClose: 5000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-  });
-  
-  // Reset form
-  setFormData({
-    name: '',
-    address: '',
-    phone: '',
-    email: '',
-    condition: '',
-    reason: '',
-    desiredAmount: '',
-    images: []
-  });
-  
-  // Reset file input
-  if (fileInputRef.current) {
-    fileInputRef.current.value = '';
-  }
-} else {
+        // Show success toast
+        toast.success(
+          "🎉 Your cash offer request has been submitted! We will contact you within 24 hours.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          }
+        );
+
+        // Reset form
+        setFormData({
+          name: "",
+          address: "",
+          phone: "",
+          email: "",
+          condition: "",
+          reason: "",
+          desiredAmount: "",
+          images: [],
+        });
+
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      } else {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('❌ There was an error submitting your request. Please call us directly at  (216) 667-7884', {
-        position: "top-right",
-        autoClose: 5000,
-      });
+      console.error("Error:", error);
+      toast.error(
+        "❌ There was an error submitting your request. Please call us directly at  (216) 667-7884",
+        {
+          position: "top-right",
+          autoClose: 5000,
+        }
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -377,7 +379,7 @@ const handleSubmit = async (e) => {
             className="hidden md:flex items-center gap-2 text-slate-800 font-semibold hover:text-slate-600 transition-colors"
           >
             <Phone className="w-4 h-4" />
-           (216) 667-7884
+            (216) 667-7884
           </a>
 
           {/* Mobile Menu Button */}
@@ -434,7 +436,7 @@ const handleSubmit = async (e) => {
                 Contact
               </a>
               <a href="tel:2166814859" className="text-slate-800 font-semibold">
-               (216) 667-7884
+                (216) 667-7884
               </a>
             </div>
           </div>
@@ -733,22 +735,22 @@ const handleSubmit = async (e) => {
           </div>
 
           {/* Trust Statement */}
-       <div className="bg-white border-2 border-slate-200 p-8 max-w-4xl mx-auto text-center">
-  <p className="text-lg text-slate-700 leading-relaxed">
-    <span className="font-bold text-slate-800">
-      Contact Information:
-    </span>
-    <br />
-    <span className="flex items-center justify-center gap-2 mt-4">
-      <Phone className="w-4 h-4 flex-shrink-0" /> 
-      <span>(216) 667-7884</span>
-    </span>
-       <span className="flex items-center justify-center gap-2 mt-2">
-      <MapPinIcon className="w-4 h-4 flex-shrink-0" /> 
-      <span>Serving Cleveland & Surrounding Ohio Areas</span>
-    </span>
-  </p>
-</div>
+          <div className="bg-white border-2 border-slate-200 p-8 max-w-4xl mx-auto text-center">
+            <p className="text-lg text-slate-700 leading-relaxed">
+              <span className="font-bold text-slate-800">
+                Contact Information:
+              </span>
+              <br />
+              <span className="flex items-center justify-center gap-2 mt-4">
+                <Phone className="w-4 h-4 flex-shrink-0" />
+                <span>(216) 667-7884</span>
+              </span>
+              <span className="flex items-center justify-center gap-2 mt-2">
+                <MapPinIcon className="w-4 h-4 flex-shrink-0" />
+                <span>Serving Cleveland & Surrounding Ohio Areas</span>
+              </span>
+            </p>
+          </div>
         </div>
       </section>
 
@@ -853,7 +855,8 @@ const handleSubmit = async (e) => {
                 </select>
               </div>
               {/* Image Upload Section */}
-         
+
+            {/* Image Upload Section */}
 <div>
   <label className="block text-sm font-semibold text-slate-800 mb-2">
     Upload Property Photos (Optional)
@@ -875,19 +878,19 @@ const handleSubmit = async (e) => {
       Choose Photos
     </button>
     <p className="text-sm text-slate-600 mb-1">
-      Upload up to 5 photos of your property (optional)
+      Upload up to 10 photos of your property (optional) {/* ← Updated from 5 to 10 */}
     </p>
     <p className="text-xs text-slate-500">
-      Supported formats: JPG, PNG, WebP • Max size: 5MB per image
+      Supported formats: JPG, PNG, WebP • Max size: 5MB per image {/* ← Keep 5MB */}
     </p>
     
     {/* Preview uploaded images */}
     {formData.images.length > 0 && (
       <div className="mt-4">
         <p className="text-sm font-medium text-slate-800 mb-2">
-          Selected Photos ({formData.images.length}/5):
+          Selected Photos ({formData.images.length}/10): {/* ← Updated from 5 to 10 */}
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2"> {/* ← Added lg:grid-cols-4 for more columns */}
           {formData.images.map((image, index) => (
             <div key={index} className="relative group">
               <img
@@ -942,22 +945,22 @@ const handleSubmit = async (e) => {
                 ></textarea>
               </div>
               <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full bg-slate-800 text-white font-bold text-sm md:text-lg py-4 hover:bg-slate-900 transition-colors flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isSubmitting ? (
-          <>
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            Submitting...
-          </>
-        ) : (
-          <>
-            Get My Cash Offer Now
-            <ArrowRight className="w-5 h-5" />
-          </>
-        )}
-      </button>
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-slate-800 text-white font-bold text-sm md:text-lg py-4 hover:bg-slate-900 transition-colors flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    Get My Cash Offer Now
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
 
               <p className="text-sm text-slate-600 text-center">
                 We respect your privacy. Your information is kept confidential
@@ -1131,7 +1134,7 @@ const handleSubmit = async (e) => {
                         href="tel:2166814859"
                         className="text-slate-600 hover:text-slate-800 transition-colors"
                       >
-                       (216) 667-7884
+                        (216) 667-7884
                       </a>
                     </div>
                   </div>
