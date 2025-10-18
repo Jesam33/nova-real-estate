@@ -119,15 +119,69 @@ export default function NovacoreLanding() {
     // ADD THESE LINES:
   const fileInputRef = useRef(null);
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const imageFiles = files.slice(0, 5); // Limit to 5 images
-    
+ const handleImageUpload = (e) => {
+  const files = Array.from(e.target.files);
+  
+  if (files.length === 0) return;
+
+  // Check total images won't exceed limit
+  const currentImagesCount = formData.images.length;
+  if (currentImagesCount + files.length > 5) {
+    const availableSlots = 5 - currentImagesCount;
+    toast.error(`❌ You can only upload ${availableSlots} more image(s). Maximum 5 images allowed.`);
+    files.splice(availableSlots); // Trim to available slots
+  }
+
+  let validFiles = [];
+  let hasErrors = false;
+
+  files.forEach(file => {
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast.error(`❌ ${file.name} is not a supported image format. Use JPG, PNG, or WebP.`);
+      hasErrors = true;
+      return;
+    }
+
+    // Check file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error(`❌ ${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is 5MB.`);
+      hasErrors = true;
+      return;
+    }
+
+    // Check if file is actually an image
+    if (!file.type.startsWith('image/')) {
+      toast.error(`❌ ${file.name} is not a valid image file.`);
+      hasErrors = true;
+      return;
+    }
+
+    validFiles.push(file);
+  });
+
+  if (validFiles.length > 0) {
     setFormData(prev => ({
       ...prev,
-      images: [...prev.images, ...imageFiles]
+      images: [...prev.images, ...validFiles]
     }));
-  };
+
+    if (hasErrors) {
+      toast.info(`✅ ${validFiles.length} image(s) uploaded successfully. Some files were skipped due to errors.`);
+    } else {
+      toast.success(`✅ ${validFiles.length} image(s) uploaded successfully!`);
+    }
+  } else if (hasErrors) {
+    // toast.error('❌ No images were uploaded. Please check file requirements.');
+  }
+
+  // Reset file input
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+};
 
   const removeImage = (index) => {
     setFormData(prev => ({
@@ -799,7 +853,7 @@ const handleSubmit = async (e) => {
                 </select>
               </div>
               {/* Image Upload Section */}
-             {/* Image Upload Section */}
+         
 <div>
   <label className="block text-sm font-semibold text-slate-800 mb-2">
     Upload Property Photos (Optional)
@@ -809,7 +863,7 @@ const handleSubmit = async (e) => {
       type="file"
       ref={fileInputRef}
       multiple
-      accept="image/*"
+      accept="image/jpeg, image/jpg, image/png, image/webp, image/gif"
       onChange={handleImageUpload}
       className="hidden"
     />
@@ -820,8 +874,11 @@ const handleSubmit = async (e) => {
     >
       Choose Photos
     </button>
-    <p className="text-sm text-slate-600">
+    <p className="text-sm text-slate-600 mb-1">
       Upload up to 5 photos of your property (optional)
+    </p>
+    <p className="text-xs text-slate-500">
+      Supported formats: JPG, PNG, WebP • Max size: 5MB per image
     </p>
     
     {/* Preview uploaded images */}
@@ -838,6 +895,9 @@ const handleSubmit = async (e) => {
                 alt={`Property photo ${index + 1}`}
                 className="w-full h-20 object-cover rounded border border-slate-200"
               />
+              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
+                {(image.size / (1024 * 1024)).toFixed(1)}MB
+              </div>
               <button
                 type="button"
                 onClick={() => removeImage(index)}
@@ -852,7 +912,6 @@ const handleSubmit = async (e) => {
     )}
   </div>
 </div>
-
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
                   Desired Sale Price *
