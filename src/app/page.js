@@ -25,7 +25,80 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import jeff from "./assets/images/jeff.jpg";
 import Image from "next/image";
+// Add this compression function right after your imports
+// Replace your compressImageToSmallSize function with this:
+const compressImageToSmallSize = (file, maxWidth = 800, quality = 0.6, maxFileSize = 100000) => {
+  return new Promise((resolve, reject) => {
+    // Skip compression if already small enough
+    if (file.size <= maxFileSize) {
+      resolve(file);
+      return;
+    }
 
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+
+      // Calculate new dimensions to fit within maxWidth while maintaining aspect ratio
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+
+      // Set canvas dimensions
+      canvas.width = width;
+      canvas.height = height;
+
+      // Fill background with white (for PNG transparency issues)
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw and compress image
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to blob with aggressive compression
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Canvas to Blob conversion failed'));
+            return;
+          }
+
+          // If still too large, reduce quality further
+          if (blob.size > maxFileSize && quality > 0.3) {
+            const reducedQuality = Math.max(0.3, quality - 0.1);
+            canvas.toBlob(
+              (smallerBlob) => {
+                if (smallerBlob) {
+                  resolve(smallerBlob);
+                } else {
+                  resolve(blob); // Fallback to original compressed version
+                }
+              },
+              'image/jpeg',
+              reducedQuality
+            );
+          } else {
+            resolve(blob);
+          }
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      reject(new Error('Failed to load image'));
+    };
+
+    // Create object URL and load image
+    img.src = URL.createObjectURL(file);
+  });
+};
 const benefitsData = [
   {
     id: 1,
@@ -119,62 +192,107 @@ export default function NovacoreLanding() {
   // ADD THESE LINES:
   const fileInputRef = useRef(null);
 
-const handleImageUpload = (e) => {
+const handleImageUpload = async (e) => {
   const files = Array.from(e.target.files);
   
   if (files.length === 0) return;
 
-  // Check total images won't exceed limit - CHANGED TO 10
+  // Check total images won't exceed limit
   const currentImagesCount = formData.images.length;
-  if (currentImagesCount + files.length > 10) { // ← Changed from 5 to 10
-    const availableSlots = 10 - currentImagesCount; // ← Changed from 5 to 10
+  if (currentImagesCount + files.length > 10) {
+    const availableSlots = 10 - currentImagesCount;
     toast.error(`❌ You can only upload ${availableSlots} more image(s). Maximum 10 images allowed.`);
-    files.splice(availableSlots); // Trim to available slots
+    files.splice(availableSlots);
   }
 
   let validFiles = [];
   let hasErrors = false;
 
-  files.forEach(file => {
-    // Check file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      toast.error(`❌ ${file.name} is not a supported image format. Use JPG, PNG, or WebP.`);
-      hasErrors = true;
-      return;
-    }
-
-    // Check file size - KEEP 5MB LIMIT
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      toast.error(`❌ ${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is 5MB.`);
-      hasErrors = true;
-      return;
-    }
-
-    // Check if file is actually an image
-    if (!file.type.startsWith('image/')) {
-      toast.error(`❌ ${file.name} is not a valid image file.`);
-      hasErrors = true;
-      return;
-    }
-
-    validFiles.push(file);
+  // Show loading toast
+  toast.info(`🔄 Compressing ${files.length} image(s)...`, {
+    position: "top-right",
+    autoClose: 2000,
   });
 
-  if (validFiles.length > 0) {
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...validFiles]
-    }));
+  try {
+    // Compress all files
+    const compressionPromises = files.map(async (file) => {
+      // Check file type first
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        toast.error(`❌ ${file.name} is not a supported image format. Use JPG, PNG, or WebP.`);
+        hasErrors = true;
+        return null;
+      }
 
-    if (hasErrors) {
-      toast.info(`✅ ${validFiles.length} image(s) uploaded successfully. Some files were skipped due to errors.`);
-    } else {
-      toast.success(`✅ ${validFiles.length} image(s) uploaded successfully!`);
+      // Check file size - keep 5MB limit for original files
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        toast.error(`❌ ${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is 5MB.`);
+        hasErrors = true;
+        return null;
+      }
+
+      // Check if file is actually an image
+      if (!file.type.startsWith('image/')) {
+        toast.error(`❌ ${file.name} is not a valid image file.`);
+        hasErrors = true;
+        return null;
+      }
+
+      try {
+        // Compress the image
+        const compressedBlob = await compressImageToSmallSize(file, 800, 0.6, 100000); // 100KB target
+        
+        // Create new file from compressed blob
+        const compressedFile = new File([compressedBlob], file.name, {
+          type: 'image/jpeg',
+          lastModified: Date.now()
+        });
+
+        console.log(`✅ Compressed ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB`);
+        
+        return compressedFile;
+      } catch (compressionError) {
+        console.error(`Compression failed for ${file.name}:`, compressionError);
+        toast.error(`❌ Failed to compress ${file.name}. Using original file.`);
+        return file; // Fallback to original
+      }
+    });
+
+    // Wait for all compression operations to complete
+    const compressedFiles = await Promise.all(compressionPromises);
+    
+    // Filter out null values (failed validations)
+    validFiles = compressedFiles.filter(file => file !== null);
+
+    if (validFiles.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...validFiles]
+      }));
+
+      // Show success message with size info
+      const totalSizeReduction = validFiles.reduce((acc, file, index) => {
+        const originalSize = files[index].size;
+        const compressedSize = file.size;
+        return acc + (originalSize - compressedSize);
+      }, 0);
+
+      const reductionPercent = ((totalSizeReduction / validFiles.reduce((acc, _, index) => acc + files[index].size, 0)) * 100).toFixed(1);
+
+      if (hasErrors) {
+        toast.info(`✅ ${validFiles.length} image(s) uploaded successfully (${reductionPercent}% smaller). Some files were skipped due to errors.`);
+      } else {
+        toast.success(`✅ ${validFiles.length} image(s) uploaded successfully! Size reduced by ${reductionPercent}%`);
+      }
+    } else if (hasErrors) {
+      toast.error('❌ No images were uploaded. Please check file requirements.');
     }
-  } else if (hasErrors) {
-    // toast.error('❌ No images were uploaded. Please check file requirements.');
+
+  } catch (error) {
+    console.error('Image processing error:', error);
+    toast.error('❌ Error processing images. Please try again.');
   }
 
   // Reset file input
@@ -182,7 +300,6 @@ const handleImageUpload = (e) => {
     fileInputRef.current.value = '';
   }
 };
-
 const removeImage = (index) => {
     setFormData((prev) => ({
       ...prev,
@@ -197,104 +314,138 @@ const removeImage = (index) => {
     });
   };
   // In your NovacoreLanding component
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
+// Add this function BEFORE handleSubmit
+const uploadImagesToCloudinary = async (files) => {
+  const uploadPromises = files.map(async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+    
     try {
-      const submitData = new FormData();
-
-      // Append all form fields
-      submitData.append("name", formData.name);
-      submitData.append("address", formData.address);
-      submitData.append("phone", formData.phone);
-      submitData.append("email", formData.email);
-      submitData.append("condition", formData.condition);
-      submitData.append("reason", formData.reason);
-      submitData.append("desiredAmount", formData.desiredAmount);
-
-      // Append images
-      formData.images.forEach((image, index) => {
-        submitData.append("images", image);
-      });
-
-      const response = await fetch("/api/submissions", {
-        method: "POST",
-        body: submitData,
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // THIS PART MUST EXIST AND BE CALLED:
-        console.log("📧 Sending admin notification...");
-        try {
-          const notificationResponse = await fetch("/api/send-notification", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              name: formData.name,
-              address: formData.address,
-              phone: formData.phone,
-              email: formData.email,
-              desiredAmount: formData.desiredAmount,
-              condition: formData.condition,
-            }),
-          });
-
-          const notificationResult = await notificationResponse.json();
-          console.log("📧 Notification result:", notificationResult);
-        } catch (error) {
-          console.error("❌ Notification failed:", error);
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
         }
-
-        // Show success toast
-        toast.success(
-          "🎉 Your cash offer request has been submitted! We will contact you within 24 hours.",
-          {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          }
-        );
-
-        // Reset form
-        setFormData({
-          name: "",
-          address: "",
-          phone: "",
-          email: "",
-          condition: "",
-          reason: "",
-          desiredAmount: "",
-          images: [],
-        });
-
-        // Reset file input
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
-      } else {
-        throw new Error(result.error);
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed for ${file.name}`);
       }
+      
+      const data = await response.json();
+      console.log('✅ Image uploaded:', data.secure_url);
+      return data.secure_url;
     } catch (error) {
-      console.error("Error:", error);
-      toast.error(
-        "❌ There was an error submitting your request. Please call us directly at  (216) 667-7884",
+      console.error('❌ Image upload error:', error);
+      toast.error(`Failed to upload ${file.name}`);
+      throw error;
+    }
+  });
+  
+  return Promise.all(uploadPromises);
+};
+
+// Replace your handleSubmit with this:
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+
+  try {
+    let imageUrls = [];
+    
+    // STEP 1: Upload images to Cloudinary FIRST (if any)
+    console.log('🎬 Form submitted with', formData.images.length, 'images');  // ← ADD
+    
+    if (formData.images.length > 0) {
+      toast.info(`📤 Uploading ${formData.images.length} image(s)...`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      
+      console.log('📤 Starting Cloudinary upload...');  // ← ADD
+      imageUrls = await uploadImagesToCloudinary(formData.images);
+      console.log('✅ Cloudinary upload complete! URLs:', imageUrls);  // ← ADD
+      
+      toast.success(`✅ ${imageUrls.length} image(s) uploaded successfully!`, {
+        position: "top-right",
+        autoClose: 2000,
+      });
+    } else {
+      console.log('ℹ️ No images to upload');  // ← ADD
+    }
+
+    // STEP 2: Submit form with image URLs
+    const payload = {
+      name: formData.name,
+      address: formData.address,
+      phone: formData.phone,
+      email: formData.email,
+      condition: formData.condition,
+      reason: formData.reason,
+      desiredAmount: formData.desiredAmount,
+      images: imageUrls,
+    };
+    
+    console.log('📦 Payload being sent to API:', payload);  // ← ADD
+
+    const response = await fetch("/api/submissions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+    console.log('📥 API Response:', result);  // ← ADD
+
+    if (result.success) {
+      toast.success(
+        "🎉 Your cash offer request has been submitted! We will contact you within 24 hours.",
         {
           position: "top-right",
           autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
         }
       );
-    } finally {
-      setIsSubmitting(false);
+
+      // Reset form
+      setFormData({
+        name: "",
+        address: "",
+        phone: "",
+        email: "",
+        condition: "",
+        reason: "",
+        desiredAmount: "",
+        images: [],
+      });
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } else {
+      throw new Error(result.error);
     }
-  };
+  } catch (error) {
+    console.error("❌ Error:", error);
+    toast.error(
+      "❌ There was an error submitting your request. Please call us directly at (216) 667-7884",
+      {
+        position: "top-right",
+        autoClose: 5000,
+      }
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
   return (
     <div className="min-h-screen bg-white">
       <ToastContainer
@@ -879,42 +1030,47 @@ const removeImage = (index) => {
     >
       Choose Photos
     </button>
-    <p className="text-sm text-slate-600 mb-1">
-      Upload up to 10 photos of your property (optional) {/* ← Updated from 5 to 10 */}
-    </p>
-    <p className="text-xs text-slate-500">
-      Supported formats: JPG, PNG, WebP • Max size: 5MB per image {/* ← Keep 5MB */}
-    </p>
+   <p className="text-sm text-slate-600 mb-1">
+  Upload up to 10 photos of your property (optional)
+</p>
+<p className="text-xs text-slate-500">
+  Supported formats: JPG, PNG, WebP • Max size: 5MB per image • Auto-compressed for faster upload
+</p>
     
     {/* Preview uploaded images */}
-    {formData.images.length > 0 && (
-      <div className="mt-4">
-        <p className="text-sm font-medium text-slate-800 mb-2">
-          Selected Photos ({formData.images.length}/10): {/* ← Updated from 5 to 10 */}
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2"> {/* ← Added lg:grid-cols-4 for more columns */}
-          {formData.images.map((image, index) => (
-            <div key={index} className="relative group">
-              <img
-                src={URL.createObjectURL(image)}
-                alt={`Property photo ${index + 1}`}
-                className="w-full h-20 object-cover rounded border border-slate-200"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
-                {(image.size / (1024 * 1024)).toFixed(1)}MB
-              </div>
-              <button
-                type="button"
-                onClick={() => removeImage(index)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-              >
-                ×
-              </button>
-            </div>
-          ))}
+   {/* Preview uploaded images */}
+{formData.images.length > 0 && (
+  <div className="mt-4">
+    <p className="text-sm font-medium text-slate-800 mb-2">
+      Selected Photos ({formData.images.length}/10):
+    </p>
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+      {formData.images.map((image, index) => (
+        <div key={index} className="relative group">
+          <img
+            src={URL.createObjectURL(image)}
+            alt={`Property photo ${index + 1}`}
+            className="w-full h-20 object-cover rounded border border-slate-200"
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 flex justify-between">
+            <span>{(image.size / 1024).toFixed(0)}KB</span>
+            <span className="text-green-300">✓ Compressed</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => removeImage(index)}
+            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+          >
+            ×
+          </button>
         </div>
-      </div>
-    )}
+      ))}
+    </div>
+    <p className="text-xs text-green-600 mt-2">
+      ✅ Images automatically compressed for faster upload and viewing
+    </p>
+  </div>
+)}
   </div>
 </div>
               <div>

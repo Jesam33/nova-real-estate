@@ -1,14 +1,12 @@
-// src/app/api/submissions/route.js (VERCEL-READY VERSION)
+// src/app/api/submissions/route.js (UPDATED FOR CLOUDINARY DIRECT UPLOAD)
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
-import { uploadToCloudinary } from '@/lib/cloudinary';
 
-// Add this function INSIDE the file but OUTSIDE the POST function
+// Keep this notification function
 async function sendAdminNotification(formData) {
   try {
     console.log('📧 Sending admin notification...');
     
-    // FIX: Use dynamic URL for Vercel compatibility
     const baseUrl = process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}`
       : 'http://localhost:3000';
@@ -35,40 +33,23 @@ export async function POST(request) {
   try {
     console.log('🔧 API Route: Processing submission...');
     
-    // Get the content type
-    const contentType = request.headers.get('content-type') || '';
-    console.log('📨 Content-Type:', contentType);
+    // Now we ONLY receive JSON with image URLs (no more FormData)
+    const jsonData = await request.json();
+    console.log('📥 Raw data received:', jsonData);  // Debug log
+    
+    const {
+      name,
+      address,
+      phone,
+      email,
+      condition,
+      reason,
+      desiredAmount,
+      images, // ← Already Cloudinary URLs from frontend
+    } = jsonData;
 
-    let name, address, phone, email, condition, reason, desiredAmount, images;
-
-    if (contentType.includes('multipart/form-data')) {
-      // Handle FormData (from your form with images)
-      const formData = await request.formData();
-      
-      name = formData.get('name');
-      address = formData.get('address');
-      phone = formData.get('phone');
-      email = formData.get('email');
-      condition = formData.get('condition');
-      reason = formData.get('reason');
-      desiredAmount = formData.get('desiredAmount');
-      images = formData.getAll('images');
-      
-      console.log('📝 FormData received - Images:', images);
-    } else {
-      // Handle JSON (fallback)
-      const jsonData = await request.json();
-      name = jsonData.name;
-      address = jsonData.address;
-      phone = jsonData.phone;
-      email = jsonData.email;
-      condition = jsonData.condition;
-      reason = jsonData.reason;
-      desiredAmount = jsonData.desiredAmount;
-      images = jsonData.images || [];
-      
-      console.log('📝 JSON received');
-    }
+    console.log('📸 Images received:', images);  // Debug log
+    console.log('📸 Images count:', images?.length || 0);  // Debug log
 
     // Validate required fields
     if (!name || !address || !phone || !email || !condition || !reason) {
@@ -78,23 +59,9 @@ export async function POST(request) {
       );
     }
 
-    let imageUrls = [];
-    
-    // Upload images to Cloudinary if available
-    if (images && images.length > 0 && process.env.CLOUDINARY_CLOUD_NAME) {
-      console.log('☁️ Uploading images to Cloudinary...');
-      for (const imageFile of images) {
-        if (imageFile instanceof File && imageFile.size > 0) {
-          try {
-            const imageUrl = await uploadToCloudinary(imageFile);
-            imageUrls.push(imageUrl);
-            console.log('✅ Image uploaded:', imageUrl);
-          } catch (error) {
-            console.error('❌ Image upload failed:', error);
-          }
-        }
-      }
-    }
+    // Images are already uploaded - just use the URLs!
+    const imageUrls = images || [];
+    console.log('💾 Image URLs to save:', imageUrls);  // Debug log
 
     // Save to MongoDB
     const client = await clientPromise;
@@ -114,7 +81,9 @@ export async function POST(request) {
       submitted_at: new Date()
     };
 
+    console.log('💾 Full submission data to save:', submissionData);  // Debug log
     console.log('💾 Saving to MongoDB...');
+    
     const result = await collection.insertOne(submissionData);
 
     console.log('🎉 Submission saved successfully! ID:', result.insertedId);
