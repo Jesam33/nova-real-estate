@@ -228,7 +228,7 @@ const handleImageUpload = async (e) => {
       // Check file size - keep 5MB limit for original files
       const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
-        toast.error(`❌ ${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is 5MB.`);
+        // toast.error(`❌ ${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is 5MB.`);
         hasErrors = true;
         return null;
       }
@@ -255,7 +255,7 @@ const handleImageUpload = async (e) => {
         return compressedFile;
       } catch (compressionError) {
         console.error(`Compression failed for ${file.name}:`, compressionError);
-        toast.error(`❌ Failed to compress ${file.name}. Using original file.`);
+        // toast.error(`❌ Failed to compress ${file.name}. Using original file.`);
         return file; // Fallback to original
       }
     });
@@ -400,6 +400,28 @@ const handleSubmit = async (e) => {
 
     const result = await response.json();
     console.log('📥 API Response:', result);  // ← ADD
+
+      try {
+        const notificationResponse = await fetch("/api/send-notification", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            address: formData.address,
+            phone: formData.phone,
+            email: formData.email,
+            desiredAmount: formData.desiredAmount,
+            condition: formData.condition,
+          }),
+        });
+
+        const notificationResult = await notificationResponse.json();
+        console.log("📧 Notification result:", notificationResult);
+      } catch (error) {
+        console.error("❌ Notification failed:", error);
+      }
 
     if (result.success) {
       toast.success(
