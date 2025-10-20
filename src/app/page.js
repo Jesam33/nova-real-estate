@@ -347,6 +347,28 @@ const uploadImagesToCloudinary = async (files) => {
   return Promise.all(uploadPromises);
 };
 
+const validateAllFields = () => {
+  const requiredFields = {
+    name: 'Full Name',
+    address: 'Property Address', 
+    phone: 'Phone Number',
+    email: 'Email Address',
+    condition: 'Property Condition',
+    reason: 'Reason for Selling',
+    desiredAmount: 'Desired Sale Price'
+  };
+
+  // Check each required field
+  for (const [field, fieldName] of Object.entries(requiredFields)) {
+    if (!formData[field] || formData[field].toString().trim() === '') {
+      toast.error(`❌ Please fill in the ${fieldName}`);
+      return false;
+    }
+  }
+
+  return true;
+};
+
 // Replace your handleSubmit with this:
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -356,7 +378,13 @@ const handleSubmit = async (e) => {
     let imageUrls = [];
     
     // STEP 1: Upload images to Cloudinary FIRST (if any)
-    console.log('🎬 Form submitted with', formData.images.length, 'images');  // ← ADD
+    console.log('🎬 Form submitted with', formData.images.length, 'images');
+    
+     if (!validateAllFields()) {
+    setIsSubmitting(false);
+    return; // Stop submission if validation fails
+  }
+// ← ADD
     
     if (formData.images.length > 0) {
       toast.info(`📤 Uploading ${formData.images.length} image(s)...`, {
@@ -1024,9 +1052,9 @@ const handleSubmit = async (e) => {
                   className="w-full px-4 py-3 border border-slate-300 placeholder:text-sm focus:border-slate-800 focus:outline-none transition-colors"
                 >
                   <option value="">Select condition...</option>
-                  <option value="good">Good Condition</option>
-                  <option value="needs-repairs">Needs Repairs</option>
-                  <option value="vacant">Vacant</option>
+                  <option value="good">Needs Full Rehab</option>
+                  <option value="needs-repairs">Needs minor Rehab</option>
+                  <option value="vacant">Needs Medium Rehab</option>
                 </select>
               </div>
               {/* Image Upload Section */}
